@@ -29,6 +29,7 @@
 		10F594702394AA2E00BFD847 /* Process.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Process.h; sourceTree = "<group>"; };
 		10F594722394E28300BFD847 /* CPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CPU.h; sourceTree = "<group>"; };
 		A5878FA72395E134003EAA5A /* SchedulerQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SchedulerQueue.h; sourceTree = "<group>"; };
+		A5878FA823962831003EAA5A /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		A593535D2395B7FF001B2BEF /* input.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = input.txt; sourceTree = "<group>"; };
 		A593535E2395B871001B2BEF /* TextTable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextTable.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -47,6 +48,7 @@
 		10F5945C2394A9FB00BFD847 = {
 			isa = PBXGroup;
 			children = (
+				A5878FA823962831003EAA5A /* .gitignore */,
 				10F594672394A9FB00BFD847 /* Proyecto Sistemas Operativos */,
 				10F594662394A9FB00BFD847 /* Products */,
 			);
