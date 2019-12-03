@@ -19,12 +19,18 @@ public:
     int getWaitingTime();
     int getIOTime();
     
-    void setPriority(int priority){ this->priority = priority;};
+    int getPriority();
+    
+    void setPriority(int priority);
     void setCompletionTime(int time);
     void setCPUTime(int time);
     void setWaitingTime(int time);
     void setIOTime(int time);
     void print(TextTable &s);
+    
+    bool operator()(const Process& p){
+        return this->priority < p.priority;
+    }
 private:
     int pid;
     int arrivalTime;
@@ -35,11 +41,10 @@ private:
     int priority;
 };
 
-
 Process::Process(int pid, int arrivalTime){
     this->pid = pid;
     this->arrivalTime = arrivalTime;
-    this->priority = 1;
+    this->priority = 0;
     this->cpuTime = 0;
     this->waitingTime = 0;
     this->ioTime = 0;
@@ -52,6 +57,14 @@ Process::Process(int pid, int arrivalTime, int priority){
     this->cpuTime = 0;
     this->waitingTime = 0;
     this->ioTime = 0;
+}
+
+int Process::getPriority(){
+    return priority;
+}
+
+void Process::setPriority(int priority){
+    this->priority = priority;
 }
 
 int Process::getPid(){

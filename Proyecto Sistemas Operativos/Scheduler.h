@@ -53,7 +53,10 @@ private:
     string policy;
     CPU *cpu;
     int quantum;
+    int arrivesAtCPU = 0;
+    int timesUp = 0;
     bool simulationIsRunning = true;
+    unsigned int clock = 0;
     map<int, Instruction> instructions;
     
     SchedulerQueue ready;
@@ -108,12 +111,13 @@ void Scheduler::start(){
 void Scheduler::run(){
     
     printTableHeader('h');
-    unsigned int clock = 0;
     while (simulationIsRunning){
         bool instructionExists = instructions.find(clock) != instructions.end();
-        if (clock % quantum == 0 || instructionExists){
+        timesUp = (clock - arrivesAtCPU) % quantum;
+        if (timesUp == 0 || instructionExists){
             performInstruction(clock);
             if (cpu->empty() && !ready.empty()){
+                arrivesAtCPU = clock;
                 cpu->attachProcess(ready.front());
                 ready.pop();
             }
@@ -170,9 +174,10 @@ void Scheduler::performInstruction(int timestamp){
         unblockProcess(pid);
     else if (event == "endsimulacion" || event == "endsimulación")
         simulationIsRunning = false;
-    else if (timestamp % quantum == 0){
+    else if (timesUp % quantum == 0){
         Process* process = cpu->getProcess();
         cpu->unattachProcess();
+        process->setPriority(clock);
         ready.push(process);
     }
     else
@@ -180,7 +185,8 @@ void Scheduler::performInstruction(int timestamp){
 }
 
 void Scheduler::processArrives(int pid, int timestamp){
-    ready.push(new Process(pid, timestamp));
+    Process* process = new Process(pid, timestamp, clock);
+    ready.push(process);
 }
 
 void Scheduler::processExits(int pid, int timestamp){
@@ -206,6 +212,7 @@ void Scheduler::processExits(int pid, int timestamp){
 
 }
 
+// BORRAR
 Process* Scheduler::searchQueue(queue<Process*> &search, int pid){
     queue<Process*> temp;
     
@@ -230,7 +237,9 @@ void Scheduler::blockProcess(Process *process){
 }
 
 void Scheduler::unblockProcess(int pid){
-    ready.push(blocked.search(pid));
+    Process* process = blocked.search(pid);
+    process->setPriority(clock);
+    ready.push(process);
     blocked.erase(pid);
 }
 
