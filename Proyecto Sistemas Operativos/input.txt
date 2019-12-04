@@ -1,21 +1,24 @@
-RR
-QUANTUM 1000
-0 Llega 1
-1 Llega 2
-2 Llega 3
-1500 startI/O 2
-2501 Llega 4
-3501 Acaba 3
-3502 Llega 5
-3503 Llega 6
-5502 Llega 7
-5503 Acaba 5
-5504 startI/O 6
-5600 Acaba 4
-5900 endI/O 2
-5901 Acaba 1
-5902 endI/O 6
-5903 Acaba 7
-7904 Acaba 2
-7905 Acaba 6
-7906 endSimulacion
+prioNonPreemptive // Esto es una política no exclusiva
+QUANTUM  0 // No existe el QUANTUM
+
+// A partir de aquí empiezan los procesos.
+0 Llega 1 prio 1
+5 Llega 2 prio 2 // La llegada de procesos sigue este formato
+10 Llega 3 prio 2
+15 startI/O 1
+20 Llega 4 prio 4
+25 endI/O 1
+30 startI/O 2
+35 Llega 5 prio 5
+40 startI/O 1
+45 Llega 6 prio 6
+50 endI/O 1
+55 endI/O 2
+60 Acaba 2
+65 Acaba 3
+70 Acaba 1
+75 Acaba 4
+80 Acaba 5
+85 Acaba 6
+90 endSimulacion
+

@@ -18,6 +18,8 @@ public:
     int getCPUTime();
     int getWaitingTime();
     int getIOTime();
+    int getArrivalTime();
+    int getCompletionTime();
     
     int getPriority();
     
@@ -99,14 +101,22 @@ int Process::getIOTime(){
     return this->ioTime;
 }
 
+int Process::getArrivalTime(){
+    return arrivalTime;
+}
+
+int Process::getCompletionTime(){
+    return completionTime;
+}
+
 void Process::print(TextTable &s){
     s.add(to_string(pid));
     s.add(to_string(arrivalTime));
     s.add(to_string(completionTime));
     s.add(to_string(cpuTime));
     s.add(to_string(waitingTime));
-    s.add(to_string(completionTime - arrivalTime));
     s.add(to_string(ioTime));
+    s.add(to_string(completionTime - arrivalTime));
     s.endOfRow();
 }
 

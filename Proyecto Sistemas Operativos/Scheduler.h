@@ -49,7 +49,7 @@ public:
     void printTableHeader(char c);
 private:
     ifstream file;
-    set<string>policies = {"RR", "prioNonPreemptive"};
+    set<string>policies;
     string policy;
     CPU *cpu;
     int quantum;
@@ -68,6 +68,8 @@ private:
 };
 
 Scheduler::Scheduler(string inputName){
+    policies.insert("RR");
+    policies.insert("prioNonPreemptive");
     this->file.open(inputName);
     cpu->CPU::createInstance();
     getMetaData();
@@ -77,20 +79,26 @@ Scheduler::Scheduler(string inputName){
 
 // TODO: Not return string
 void Scheduler::getMetaData(){
-    string policy;
+    string policy, line;
     string word;
     int quantumNumber = -1;
-    this->file >> policy;
-    if(policies.find(policy) == policies.end())
-        throw "Policy not supported";
-    this->file >> word >> quantumNumber;
     
+    getline(this->file, line);
+    stringstream istr(line);
+    istr >> policy;
+    if(policies.find(policy) == policies.end())
+        throw runtime_error("\nError: Policy not supported");
+    
+    getline(this->file, line);
+    stringstream lstr(line);
+    lstr >> word >> quantumNumber;
+        
     if (word != "QUANTUM")
-        throw "'QUANTUM' statement not found";
+        throw runtime_error("\nError: 'QUANTUM' statement not found");
     if (policy == "RR" && quantumNumber <= 0)
-        throw "Unvalid Quantum for Round Robin";
+        throw runtime_error("\nError: Unvalid Quantum for Round Robin");
     if (policy == "prioNonPreemptive" && quantumNumber != 0)
-        throw "Unvalid Quantum for prioNonPreemptive";
+        throw runtime_error("\nError: Unvalid Quantum for prioNonPreemptive");
 
     this->quantum = quantumNumber;
     this->policy = policy;
@@ -113,8 +121,10 @@ void Scheduler::run(){
     printTableHeader('h');
     while (simulationIsRunning){
         bool instructionExists = instructions.find(clock) != instructions.end();
-        timesUp = (clock - arrivesAtCPU) % quantum;
-        if (timesUp == 0 || instructionExists){
+        if(policy == "RR"){
+            timesUp = (clock - arrivesAtCPU) % quantum;
+        }
+        if ((timesUp == 0 && policy == "RR") || instructionExists){
             performInstruction(clock);
             if (cpu->empty() && !ready.empty()){
                 arrivesAtCPU = clock;
@@ -133,9 +143,10 @@ void Scheduler::run(){
 
 bool Scheduler::checkSyntax(string line){
     //TODO: Ignorar comentarios
-    regex reg1("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)[a-z|A-Z|/]+( *)[0-9]+( *)(//( *)([a-z|A-Z]*)( *))?$", regex::icase);
-    regex reg2("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)(endSimulacion|endSimulación)( *)(//( *)([a-z|A-Z]*)( *))?$", regex::icase);
-    return regex_match(line, reg1) || regex_match(line, reg2);
+    regex reg1("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)[a-z|A-Z|/]+( *)[0-9]+( *)(//( *)([a-z|A-Z| ]*)( *))?$", regex::icase);
+    regex reg2("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)(endSimulacion|endSimulación)( *)(//( *)([a-z|A-Z| ]*)( *))?$", regex::icase);
+    regex reg3("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)[a-z|A-Z|/]+( *)[0-9]+( *)prio+( *)[0-9]+( *)(//( *)([a-z|A-Z| ]*)( *))?$", regex::icase);
+    return regex_match(line, reg1) || regex_match(line, reg2) || regex_match(line, reg3);
 }
 
 void Scheduler::storeEvents(string line){
@@ -174,14 +185,14 @@ void Scheduler::performInstruction(int timestamp){
         unblockProcess(pid);
     else if (event == "endsimulacion" || event == "endsimulación")
         simulationIsRunning = false;
-    else if (timesUp % quantum == 0){
+    else if (policy == "RR" && timesUp % quantum == 0){
         Process* process = cpu->getProcess();
         cpu->unattachProcess();
         process->setPriority(clock);
         ready.push(process);
     }
     else
-        throw "Unsupported action: " + event;
+        throw runtime_error("\nError: Unsupported action: " + event);
 }
 
 void Scheduler::processArrives(int pid, int timestamp){
@@ -200,35 +211,19 @@ void Scheduler::processExits(int pid, int timestamp){
     
     // TODO: There must be a better way to do this
     process = ready.search(pid);
+    ready.erase(pid);
     if (process){
         finished.push(process);
         process->setCompletionTime(timestamp);
         return;
     }
+    
     process = blocked.search(pid);
+    blocked.erase(pid);
     finished.push(process);
     process->setCompletionTime(timestamp);
 
 
-}
-
-// BORRAR
-Process* Scheduler::searchQueue(queue<Process*> &search, int pid){
-    queue<Process*> temp;
-    
-    Process* process = nullptr;
-    while (!search.empty()){
-        Process* processFound = search.front();
-        search.pop();
-        if (processFound->getPid() == pid) {
-            process = processFound;
-        }
-        else {
-            temp.push(processFound);
-        }
-    }
-    search = temp;
-    return process;
 }
 
 void Scheduler::blockProcess(Process *process){
@@ -238,15 +233,15 @@ void Scheduler::blockProcess(Process *process){
 
 void Scheduler::unblockProcess(int pid){
     Process* process = blocked.search(pid);
-    process->setPriority(clock);
+    if(policy == "RR"){
+        process->setPriority(clock);
+    }
     ready.push(process);
     blocked.erase(pid);
 }
 
 void Scheduler::addWaitingTime(){
     ready.addWaitingTime();
-    
-    blocked.addWaitingTime();
     blocked.addIOTime();
 }
 
@@ -317,11 +312,11 @@ void Scheduler::printTableHeader(char c){
         
         s.add("Proceso");
         s.add("Llegada");
-        s.add("Terminada");
+        s.add("Salida");
         s.add("CPU");
         s.add("Espera");
-        s.add("Turnaround");
         s.add("I/O");
+        s.add("Turnaround");
         s.endOfRow();
     }
 }
