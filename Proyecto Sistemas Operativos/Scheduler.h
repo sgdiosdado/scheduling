@@ -49,7 +49,7 @@ public:
     void printTableHeader(char c);
 private:
     ifstream file;
-    set<string>policies = {"RR", "prioNonPreemptive"};
+    set<string>policies;
     string policy;
     CPU *cpu;
     int quantum;
@@ -68,6 +68,8 @@ private:
 };
 
 Scheduler::Scheduler(string inputName){
+    policies.insert("RR");
+    policies.insert("prioNonPreemptive");
     this->file.open(inputName);
     cpu->CPU::createInstance();
     getMetaData();
@@ -77,20 +79,26 @@ Scheduler::Scheduler(string inputName){
 
 // TODO: Not return string
 void Scheduler::getMetaData(){
-    string policy;
+    string policy, line;
     string word;
     int quantumNumber = -1;
-    this->file >> policy;
-    if(policies.find(policy) == policies.end())
-        throw "Policy not supported";
-    this->file >> word >> quantumNumber;
     
+    getline(this->file, line);
+    stringstream istr(line);
+    istr >> policy;
+    if(policies.find(policy) == policies.end())
+        throw runtime_error("\nError: Policy not supported");
+    
+    getline(this->file, line);
+    stringstream lstr(line);
+    lstr >> word >> quantumNumber;
+        
     if (word != "QUANTUM")
-        throw "'QUANTUM' statement not found";
+        throw runtime_error("\nError: 'QUANTUM' statement not found");
     if (policy == "RR" && quantumNumber <= 0)
-        throw "Unvalid Quantum for Round Robin";
+        throw runtime_error("\nError: Unvalid Quantum for Round Robin");
     if (policy == "prioNonPreemptive" && quantumNumber != 0)
-        throw "Unvalid Quantum for prioNonPreemptive";
+        throw runtime_error("\nError: Unvalid Quantum for prioNonPreemptive");
 
     this->quantum = quantumNumber;
     this->policy = policy;
@@ -135,9 +143,9 @@ void Scheduler::run(){
 
 bool Scheduler::checkSyntax(string line){
     //TODO: Ignorar comentarios
-    regex reg1("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)[a-z|A-Z|/]+( *)[0-9]+( *)(//( *)([a-z|A-Z]*)( *))?$", regex::icase);
-    regex reg2("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)(endSimulacion|endSimulación)( *)(//( *)([a-z|A-Z]*)( *))?$", regex::icase);
-    regex reg3("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)[a-z|A-Z|/]+( *)[0-9]+( *)prio+( *)[0-9]+( *)(//( *)([a-z|A-Z]*)( *))?$", regex::icase);
+    regex reg1("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)[a-z|A-Z|/]+( *)[0-9]+( *)(//( *)([a-z|A-Z| ]*)( *))?$", regex::icase);
+    regex reg2("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)(endSimulacion|endSimulación)( *)(//( *)([a-z|A-Z| ]*)( *))?$", regex::icase);
+    regex reg3("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)[a-z|A-Z|/]+( *)[0-9]+( *)prio+( *)[0-9]+( *)(//( *)([a-z|A-Z| ]*)( *))?$", regex::icase);
     return regex_match(line, reg1) || regex_match(line, reg2) || regex_match(line, reg3);
 }
 
@@ -154,7 +162,6 @@ void Scheduler::storeEvents(string line){
     for (int i = 0; i < event.length(); i++){
         event[i] = tolower(event[i]);
     }
-    if(timestamp == 0) cout << "Hi";
     Instruction inst(pid, event);
     if(policy == "prioNonPreemptive"){
         istr >> word >> prio;
@@ -178,14 +185,14 @@ void Scheduler::performInstruction(int timestamp){
         unblockProcess(pid);
     else if (event == "endsimulacion" || event == "endsimulación")
         simulationIsRunning = false;
-    else if (timesUp % quantum == 0){
+    else if (policy == "RR" && timesUp % quantum == 0){
         Process* process = cpu->getProcess();
         cpu->unattachProcess();
         process->setPriority(clock);
         ready.push(process);
     }
     else
-        throw "Unsupported action: " + event;
+        throw runtime_error("\nError: Unsupported action: " + event);
 }
 
 void Scheduler::processArrives(int pid, int timestamp){
@@ -235,8 +242,6 @@ void Scheduler::unblockProcess(int pid){
 
 void Scheduler::addWaitingTime(){
     ready.addWaitingTime();
-    
-    blocked.addWaitingTime();
     blocked.addIOTime();
 }
 
@@ -307,11 +312,11 @@ void Scheduler::printTableHeader(char c){
         
         s.add("Proceso");
         s.add("Llegada");
-        s.add("Terminada");
+        s.add("Salida");
         s.add("CPU");
         s.add("Espera");
-        s.add("Turnaround");
         s.add("I/O");
+        s.add("Turnaround");
         s.endOfRow();
     }
 }
