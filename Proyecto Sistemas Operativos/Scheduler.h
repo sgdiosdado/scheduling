@@ -44,7 +44,7 @@ public:
     void printProcesses();
     void printTable(int timestamp);
     Process* searchQueue(queue<Process*> &search, int pid);
-    void blockProcess(Process* process);
+    void blockProcess(Process* process, int pid);
     void unblockProcess(int pid);
     void printTableHeader(char c);
 private:
@@ -65,6 +65,7 @@ private:
     
     TextTable t;
     TextTable s;
+    TextTable log;
 };
 
 Scheduler::Scheduler(string inputName){
@@ -75,6 +76,7 @@ Scheduler::Scheduler(string inputName){
     getMetaData();
     TextTable t( '-', '|', '+' );
     TextTable s( '-', '|', '+' );
+    TextTable log( '-', '|', '+' );
 }
 
 // TODO: Not return string
@@ -106,6 +108,9 @@ void Scheduler::getMetaData(){
 
 void Scheduler::start(){
     string line;
+    log.add("Tiempo");
+    log.add("Advertencia");
+    log.endOfRow();
     while (getline(this->file, line)){
         if (checkSyntax(line)){
             storeEvents(line);
@@ -114,6 +119,8 @@ void Scheduler::start(){
     run();
     cout << endl << endl;
     printProcesses();
+    cout << endl;
+    cout << log << endl;
 }
 
 void Scheduler::run(){
@@ -180,7 +187,7 @@ void Scheduler::performInstruction(int timestamp){
     else if (event == "acaba")
         processExits(pid, timestamp);
     else if (event == "starti/o")
-        blockProcess(cpu->getProcess());
+        blockProcess(cpu->getProcess(), pid);
     else if (event == "endi/o")
         unblockProcess(pid);
     else if (event == "endsimulacion" || event == "endsimulación")
@@ -226,18 +233,31 @@ void Scheduler::processExits(int pid, int timestamp){
 
 }
 
-void Scheduler::blockProcess(Process *process){
-    cpu->unattachProcess();
-    blocked.push(process);
+void Scheduler::blockProcess(Process *process, int pid){
+    if(cpu->getProcess() != nullptr && cpu->getProcess()->getPid() == pid){
+        cpu->unattachProcess();
+        blocked.push(process);
+    }else {
+        log.add(to_string(clock));
+        log.add("Se intenta iniciar una acción de I/O cuando el proceso no está en CPU o ya se encuentra bloqueado.");
+        log.endOfRow();
+    }
+    
 }
 
 void Scheduler::unblockProcess(int pid){
-    Process* process = blocked.search(pid);
-    if(policy == "RR"){
-        process->setPriority(clock);
+    if(blocked.search(pid)){
+        Process* process = blocked.search(pid);
+        if(policy == "RR"){
+            process->setPriority(clock);
+        }
+        ready.push(process);
+        blocked.erase(pid);
+    }else {
+        log.add(to_string(clock));
+        log.add("Se intenta terminar una acción de I/O cuando el proceso no está bloqueado.");
+        log.endOfRow();
     }
-    ready.push(process);
-    blocked.erase(pid);
 }
 
 void Scheduler::addWaitingTime(){
