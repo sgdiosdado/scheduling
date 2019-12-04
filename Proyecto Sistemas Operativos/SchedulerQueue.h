@@ -14,7 +14,6 @@ private:
     queue<Process*> processes;
 public:
     SchedulerQueue();
-    ~SchedulerQueue();
     Process* front();
     Process* search(int pid);
     
@@ -32,13 +31,6 @@ public:
 };
 
 SchedulerQueue::SchedulerQueue(){
-}
-SchedulerQueue::~SchedulerQueue(){
-    while(!processes.empty()){
-        Process* p = processes.front();
-        processes.pop();
-        delete p;
-    }
 }
 Process* SchedulerQueue::front(){
     return processes.front();
