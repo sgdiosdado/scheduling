@@ -113,8 +113,10 @@ void Scheduler::run(){
     printTableHeader('h');
     while (simulationIsRunning){
         bool instructionExists = instructions.find(clock) != instructions.end();
-        timesUp = (clock - arrivesAtCPU) % quantum;
-        if (timesUp == 0 || instructionExists){
+        if(policy == "RR"){
+            timesUp = (clock - arrivesAtCPU) % quantum;
+        }
+        if ((timesUp == 0 && policy == "RR") || instructionExists){
             performInstruction(clock);
             if (cpu->empty() && !ready.empty()){
                 arrivesAtCPU = clock;
@@ -135,7 +137,8 @@ bool Scheduler::checkSyntax(string line){
     //TODO: Ignorar comentarios
     regex reg1("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)[a-z|A-Z|/]+( *)[0-9]+( *)(//( *)([a-z|A-Z]*)( *))?$", regex::icase);
     regex reg2("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)(endSimulacion|endSimulación)( *)(//( *)([a-z|A-Z]*)( *))?$", regex::icase);
-    return regex_match(line, reg1) || regex_match(line, reg2);
+    regex reg3("^(( *)//( *)([a-z|A-Z]*) )?( *)[0-9]+( +)[a-z|A-Z|/]+( *)[0-9]+( *)prio+( *)[0-9]+( *)(//( *)([a-z|A-Z]*)( *))?$", regex::icase);
+    return regex_match(line, reg1) || regex_match(line, reg2) || regex_match(line, reg3);
 }
 
 void Scheduler::storeEvents(string line){
@@ -151,6 +154,7 @@ void Scheduler::storeEvents(string line){
     for (int i = 0; i < event.length(); i++){
         event[i] = tolower(event[i]);
     }
+    if(timestamp == 0) cout << "Hi";
     Instruction inst(pid, event);
     if(policy == "prioNonPreemptive"){
         istr >> word >> prio;
@@ -200,35 +204,19 @@ void Scheduler::processExits(int pid, int timestamp){
     
     // TODO: There must be a better way to do this
     process = ready.search(pid);
+    ready.erase(pid);
     if (process){
         finished.push(process);
         process->setCompletionTime(timestamp);
         return;
     }
+    
     process = blocked.search(pid);
+    blocked.erase(pid);
     finished.push(process);
     process->setCompletionTime(timestamp);
 
 
-}
-
-// BORRAR
-Process* Scheduler::searchQueue(queue<Process*> &search, int pid){
-    queue<Process*> temp;
-    
-    Process* process = nullptr;
-    while (!search.empty()){
-        Process* processFound = search.front();
-        search.pop();
-        if (processFound->getPid() == pid) {
-            process = processFound;
-        }
-        else {
-            temp.push(processFound);
-        }
-    }
-    search = temp;
-    return process;
 }
 
 void Scheduler::blockProcess(Process *process){
@@ -238,7 +226,9 @@ void Scheduler::blockProcess(Process *process){
 
 void Scheduler::unblockProcess(int pid){
     Process* process = blocked.search(pid);
-    process->setPriority(clock);
+    if(policy == "RR"){
+        process->setPriority(clock);
+    }
     ready.push(process);
     blocked.erase(pid);
 }

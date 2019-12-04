@@ -33,7 +33,15 @@ public:
 SchedulerQueue::SchedulerQueue(){
 }
 Process* SchedulerQueue::front(){
-    return processes.front();
+    Process* p = processes.front();
+    queue<Process*> pq = processes;
+    while(!pq.empty()){
+        if(pq.front()->getPriority() < p->getPriority()){
+            p = pq.front();
+        }
+        pq.pop();
+    }
+    return p;
 }
 
 Process* SchedulerQueue::search(int pid){
@@ -82,7 +90,15 @@ void SchedulerQueue::push(Process* process){
 }
 
 void SchedulerQueue::pop(){
-    processes.pop();
+    Process* p = processes.front();
+    queue<Process*> pq = processes;
+    while(!pq.empty()){
+        if(pq.front()->getPriority() < p->getPriority()){
+            p = pq.front();
+        }
+        pq.pop();
+    }
+    this->erase(p->getPid());
 }
 
 bool SchedulerQueue::empty(){
