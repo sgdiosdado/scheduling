@@ -14,7 +14,10 @@ using namespace std;
 
 int main(int argc, const char * argv[]) {
     
-    Scheduler scheduler("input.txt");
+    string input;
+    cout << "Ingrese el archivo (con extension) que desea leer: ";
+    cin >> input;
+    Scheduler scheduler(input);
     scheduler.start();
     
     return 0;
